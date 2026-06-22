@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kdh"
+version = "0.1.0"
+description = "Molecular and k-point periodic double-hybrid DFT for PySCF"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["pyscf>=2.3", "numpy"]
+
+[project.optional-dependencies]
+dispersion = ["dftd3"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["kdh"]
