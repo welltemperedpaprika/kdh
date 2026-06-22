@@ -1,6 +1,5 @@
 """KRDH reproduces a manual KRKS + KMP2 double-hybrid assembly."""
-import numpy as np
-from pyscf.pbc import dft, gto, mp
+from pyscf.pbc import dft, mp
 
 from kdh import KRDH
 from kdh.xc import parse_dh_xc
