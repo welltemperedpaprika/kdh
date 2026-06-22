@@ -46,35 +46,9 @@ class DampedDensityHandle:
 class SCFStabilizationSettings:
     """Settings that harden a periodic SCF calculation against convergence failure.
 
-    Attributes
-    ----------
-    max_cycle : int or None
-        Override the SCF maximum iteration count.
-    diis_space : int or None
-        Override the DIIS history size.
-    level_shift : float or None
-        Virtual-orbital level shift in Hartree, passed to ``mf.level_shift``.
-    fock_damping : float or None
-        Fock-matrix damping coefficient passed to ``mf.damp``.
-    density_mixing_beta : float or None
-        Step size for the density-matrix damped-update mixer (0 < beta <= 1).
-        Values below 1.0 activate :func:`install_damped_density_mixer`.
-    density_mixing_start_cycle : int
-        SCF cycle (0-indexed) at which density mixing begins. Default 1.
-    diis_damp : float or None
-        HZ's damped-DIIS parameter (PySCF PR #2053, commit 559202325). The
-        Fock entering the DIIS history becomes ``f*(1-damp) + f_prev*damp``,
-        so damping stays active *during* DIIS instead of only before
-        ``diis_start_cycle``. This is the analog of QE ``mixing_beta`` /
-        FHI-aims ``charge_mix_param``. 0 disables; values near 1 mean heavy
-        damping (tiny steps).
-    lindep_threshold : float or None
-        Project out near-null overlap eigenvectors (eigenvalue < threshold)
-        per k-point via ``pyscf.scf.addons.remove_linear_dep_`` (canonical
-        orthogonalization; ``khf.eig`` dispatches to the overridden ``_eigh``
-        for every k). The same value must be passed as the activation trigger
-        ``lindep``: the PySCF default trigger (``cond(S) > 1e10``) silently
-        no-ops on the ``cond ~ 1e9`` compressed-volume cases this exists for.
+    diis_damp: damped DIIS — Fock entering DIIS history is f*(1-damp)+f_prev*damp.
+    lindep_threshold: the same value must be passed as the activation trigger,
+    because PySCF's default cond(S)>1e10 trigger no-ops on milder conditioning.
     """
 
     max_cycle: int | None = None
@@ -150,8 +124,8 @@ def configure_periodic_scf(mf, settings: SCFStabilizationSettings | None):
             raise ValueError("diis_damp requires 0 <= damp < 1")
         if not hasattr(type(mf), "diis_damp"):
             raise RuntimeError(
-                "this PySCF runtime does not support diis_damp "
-                "(needs PySCF PR #2053 / commit 559202325)"
+                "this PySCF build does not support diis_damp "
+                "(requires a newer PySCF with damped DIIS)"
             )
         mf.diis_damp = settings.diis_damp
     if settings.lindep_threshold is not None:

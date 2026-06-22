@@ -10,55 +10,7 @@ from .xc import DoubleHybridFunctional, parse_dh_xc
 
 
 class KRDH(lib.StreamObject):
-    """Restricted periodic double-hybrid DFT driver (k-point sampling).
-
-    Implements the energy as::
-
-        E_DH = E_DFA[xc_scf or xc_nscf] + c_pt2 * E_PT2
-
-    where E_PT2 is evaluated with KMP2 on the SCF orbitals.  Only
-    closed-shell (spin=0) cells are supported; PySCF has no working periodic
-    unrestricted KMP2.
-
-    Attributes
-    ----------
-    cell : pyscf.pbc.gto.Cell
-        Periodic cell object (also aliased to ``mol`` for StreamObject compat).
-    xc_dh : DoubleHybridFunctional
-        Parsed double-hybrid functional descriptor.
-    kpts : array_like
-        k-point mesh used for the SCF and PT2 steps.
-    frozen : int or list of int or None
-        Frozen-core specification passed to KMP2.
-    with_t2 : bool
-        Whether to store MP2 amplitudes.
-    df_backend : {'gdf', 'rsdf', 'fft'}
-        Density-fitting backend for the SCF and PT2 steps.
-    exxdiv : str or None
-        Divergence treatment for exact exchange (default: 'ewald' Madelung).
-    min_gap_ha : float
-        Minimum occupied-virtual gap (Ha) below which PT2 is refused unless
-        ``allow_small_gap=True``.
-    allow_small_gap : bool
-        Bypass the small-gap safety guard.
-    allow_fractional_occ : bool
-        Bypass the fractional-occupation safety guard.
-    scf_stabilization : dict or None
-        Keyword arguments forwarded to ``configure_periodic_scf``.
-    mf_s : KRKS or None
-        SCF mean-field object (set after ``run_scf``).
-    mf_n : KRKS or None
-        Non-self-consistent mean-field object for the nscf exchange-correlation
-        step (set after ``energy_dfa``; equals ``mf_s`` when ``xc_nscf`` is None).
-    kmp2 : KMP2 or None
-        MP2 object (set after ``energy_pt2``).
-    reference_safety : dict or None
-        Output of ``check_reference_safety`` (set during ``energy_pt2``).
-    e_scf, e_dfa, e_pt2, e_tot : float or None
-        Energy components populated by the respective ``energy_*`` methods.
-    e_corr_os, e_corr_ss : float or None
-        Opposite-spin and same-spin MP2 correlation energies when available.
-    """
+    """Restricted periodic double-hybrid DFT driver (k-point sampling); closed-shell (spin=0) only."""
 
     def __init__(
         self,
@@ -76,35 +28,6 @@ class KRDH(lib.StreamObject):
         scf_stabilization: Any | None = None,
         dispersion_correction=None,
     ) -> None:
-        """Initialize KRDH for *cell* with the given double-hybrid functional.
-
-        Parameters
-        ----------
-        cell : pyscf.pbc.gto.Cell
-            Periodic cell.  Must have ``spin == 0``; open-shell cells raise
-            ``NotImplementedError`` because PySCF has no working KUMP2.
-        xc : str or dict or DoubleHybridFunctional
-            Double-hybrid functional name, raw parameter dict, or pre-parsed
-            ``DoubleHybridFunctional`` descriptor.
-        kpts : array_like or None
-            k-point mesh.  Defaults to a single Gamma point when ``None``.
-        frozen : int or list of int or None
-            Frozen orbitals passed directly to ``KMP2``.
-        with_t2 : bool
-            Store MP2 t2 amplitudes.
-        df_backend : {'gdf', 'rsdf', 'fft'}
-            Density-fitting back-end for the KRKS and KMP2 objects.
-        exxdiv : str or None
-            Exchange divergence treatment (default ``'ewald'``).
-        min_gap_ha : float
-            Gap threshold (Ha) for the reference-safety guard.
-        allow_small_gap : bool
-            Suppress the small-gap RuntimeError.
-        allow_fractional_occ : bool
-            Suppress the fractional-occupation RuntimeError.
-        scf_stabilization : dict or None
-            Options forwarded to ``configure_periodic_scf``.
-        """
         if getattr(cell, "spin", 0) != 0:
             raise NotImplementedError(
                 "Open-shell periodic double hybrids are not supported: PySCF "
@@ -178,12 +101,7 @@ class KRDH(lib.StreamObject):
         return self
 
     def reset(self, cell=None):
-        """Clear all cached results and optionally replace the cell.
-
-        All energy attributes and intermediate objects (``mf_s``, ``mf_n``,
-        ``kmp2``, ``reference_safety``) are set to ``None``.  If *cell* is
-        provided it must have ``spin == 0``.
-        """
+        """Clear all cached results and optionally replace the cell."""
         if cell is not None:
             if getattr(cell, "spin", 0) != 0:
                 raise NotImplementedError(
@@ -209,9 +127,7 @@ class KRDH(lib.StreamObject):
         return self
 
     def _new_ks(self, xc: str):
-        """Build a KRKS object with exxdiv pinned on both xc_scf and xc_nscf so
-        the Madelung correction is applied consistently (PySCF scales it by each
-        functional's hybrid fraction)."""
+        """Build a KRKS object with the driver's df_backend and exxdiv."""
         mf = dft.KRKS(self.cell, kpts=self.kpts, xc=xc)
         mf.exxdiv = self.exxdiv
         if self.df_backend == "gdf":
@@ -223,21 +139,7 @@ class KRDH(lib.StreamObject):
         raise ValueError("df_backend must be 'gdf', 'rsdf', or 'fft'")
 
     def run_scf(self, **kwargs):
-        """Run the SCF step and store the converged mean-field as ``self.mf_s``.
-
-        Applies any requested SCF stabilization, then asserts convergence.
-        Extra keyword arguments are forwarded to ``mf_s.kernel``.
-
-        Returns
-        -------
-        mf_s : KRKS
-            Converged SCF mean-field object.
-
-        Raises
-        ------
-        RuntimeError
-            If the SCF does not converge.
-        """
+        """Run the SCF step and store the converged mean-field as ``self.mf_s``."""
         from .scf_stabilizers import configure_periodic_scf
 
         self.mf_s = self._new_ks(self.xc_dh.xc_scf)
@@ -256,24 +158,7 @@ class KRDH(lib.StreamObject):
         return self.mf_s
 
     def check_reference_safety(self):
-        """Check the SCF reference for small gaps and fractional occupations.
-
-        Runs the SCF if not already done, then calls
-        ``diagnostics.reference_safety_report``.  The result is stored as
-        ``self.reference_safety``.
-
-        Returns
-        -------
-        report : dict
-            Diagnostic report as returned by ``reference_safety_report``.
-
-        Raises
-        ------
-        RuntimeError
-            If fractional occupations are detected and ``allow_fractional_occ``
-            is ``False``, or if the gap is below ``min_gap_ha`` and
-            ``allow_small_gap`` is ``False``.
-        """
+        """Check the SCF reference for small gaps and fractional occupations."""
         from .diagnostics import format_reference_safety, reference_safety_report
 
         if self.mf_s is None:
@@ -290,18 +175,7 @@ class KRDH(lib.StreamObject):
         return report
 
     def energy_dfa(self, **kwargs) -> float:
-        """Compute and return the DFA energy (SCF + optional nscf XC re-evaluation).
-
-        When ``xc_nscf`` is set, the SCF density matrix is evaluated with the
-        non-self-consistent functional to obtain the DFA energy component.
-        Otherwise the SCF total energy is used directly.  The result is stored
-        as ``self.e_dfa`` and ``self.mf_n`` is set to the evaluation object.
-
-        Returns
-        -------
-        e_dfa : float
-            DFA energy in Hartree.
-        """
+        """Compute and return the DFA energy (SCF + optional nscf XC re-evaluation)."""
         if self.mf_s is None:
             self.run_scf(**kwargs)
 
@@ -321,7 +195,7 @@ class KRDH(lib.StreamObject):
         if self.xc_dh.requires_lr_pt2:
             raise NotImplementedError(
                 "Range-separated double hybrids requiring long-range PT2 are not "
-                "supported by the periodic DH checkpoint."
+                "supported by the periodic DH driver."
             )
         if not self.xc_dh.eval_pt2:
             self.e_corr_os = 0.0
@@ -366,7 +240,7 @@ class KRDH(lib.StreamObject):
     def polar_method(self):
         raise NotImplementedError(
             "Periodic double-hybrid properties require a separate periodic "
-            "response formulation and are not supported by this checkpoint."
+            "response formulation and are not supported by this driver."
         )
 
     def kernel(self, **kwargs) -> float:

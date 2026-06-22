@@ -43,8 +43,7 @@ class RDFDH(lib.StreamObject):
     def _check_closed_shell(self, mol: Any) -> None:
         if getattr(mol, "spin", 0) != 0:
             raise NotImplementedError(
-                "The molecular RDFDH checkpoint only supports closed-shell "
-                "spin=0 molecules."
+                "RDFDH only supports closed-shell spin=0 molecules."
             )
 
     @property
@@ -113,7 +112,7 @@ class RDFDH(lib.StreamObject):
         if self.xc_dh.requires_lr_pt2:
             raise NotImplementedError(
                 "Range-separated double hybrids requiring long-range PT2 are not "
-                "supported by the molecular checkpoint wrapper."
+                "supported by RDFDH."
             )
 
         if not self.xc_dh.eval_pt2:
@@ -162,7 +161,7 @@ class RDFDH(lib.StreamObject):
 
     def nuc_grad_method(self):
         raise NotImplementedError(
-            "Gradients are not supported by the molecular RDFDH checkpoint."
+            "Gradients are not supported by RDFDH."
         )
 
     Gradients = nuc_grad_method
@@ -173,7 +172,7 @@ class RDFDH(lib.StreamObject):
         if self.xc_dh.requires_lr_pt2:
             raise NotImplementedError(
                 "Range-separated double hybrids requiring long-range PT2 are not "
-                "supported by the molecular checkpoint wrapper."
+                "supported by RDFDH."
             )
         self.e_tot = (
             self.energy_dfa(**kwargs)

@@ -1,39 +1,7 @@
 """Double-hybrid functional registry and parser.
 
-Functional provenance
----------------------
-
-HF-MP2
-~~~~~~
-The ``HFMP2`` entry is a degenerate double hybrid: a pure HF SCF reference with
-full (unscaled) MP2 correlation (c_pt2 = 1.0, c_os = c_ss = 1.0, no DFT
-exchange or correlation).  It is included so that HF-based MP2/SCS-MP2/SOS-MP2
-literature protocols can be replicated through the same scan/summary pipeline as
-the real double hybrids without any special-casing.
-
-XYGJ-OS
-~~~~~~~
-Zhang, Xu, Jung, Goddard, *PNAS* **108**, 19896 (2011),
-doi:10.1073/pnas.1115123108.
-
-Exchange: 0.7731 * HF + 0.2269 * Slater (LDA).
-Correlation: 0.2309 * VWN(RPA) + 0.2754 * LYP.
-Opposite-spin-only PT2: c_pt2 = 0.4364, c_os = 1.0, c_ss = 0.0, evaluated on
-B3LYP (Gaussian variant, ``B3LYPg``) orbitals (xc_scf = ``"B3LYPg"``).
-
-The paper's LDA correlation is the VWN1-RPA parameterization, whose PySCF token
-is ``"VWN3"`` (alias ``"VWNRPA"``, libxc ``LDA_C_VWN_RPA``).  Plain ``"VWN"``
-would select VWN5 and is wrong here.
-
-Cross-checked against the ajz34/dh PySCF extension (``pyscf/dh/dhutil.py``) and
-the Q-Chem manual (section "Exchange-Correlation Functionals": 77.31% HF +
-22.69% Slater exchange, 23.09% VWN1RPA + 27.54% LYP + 43.64% OS-MP2
-correlation).
-
-Pre-2026-06-11 erratum: before 2026-06-11 this entry wrongly reused XYG3's
-``xc_nscf`` with ``c_pt2 = 0.3211`` (a spin-truncated XYG3, not the published
-XYGJ-OS); rows harvested under that definition are annotated in
-``docs/periodic-dh-scs-story-and-xdh-track.md``.
+XYGJ-OS uses VWN3 (VWN1-RPA) for its LDA correlation, not VWN5; see
+Zhang et al., PNAS 108, 19896 (2011).
 """
 
 from __future__ import annotations

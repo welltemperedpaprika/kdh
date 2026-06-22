@@ -14,7 +14,7 @@ import pyscf.data.elements as elements
 
 
 def _atomic_numbers(structure: Any) -> np.ndarray:
-    """Return true atomic numbers from element symbols (not pseudized charges)."""
+    """Return true atomic numbers (not pseudized charges) from element symbols."""
     return np.array(
         [elements.charge(structure.atom_symbol(i)) for i in range(structure.natm)]
     )
@@ -26,14 +26,7 @@ def _is_periodic(structure: Any) -> bool:
 
 
 def dftd3_correction(structure: Any, functional: Any) -> float:
-    """Return the D3(BJ) dispersion energy (Hartree) for *structure*.
-
-    Uses true atomic numbers, Bohr positions, and — for a periodic cell — the
-    Bohr lattice with full periodicity. Damping parameters come from
-    ``functional.dispersion['params']`` and must include an explicit ``s9``
-    (the dftd3 API defaults ``s9=1.0``/ATM-on; standard B2PLYP-D3(BJ) is
-    two-body, ``s9=0.0``).
-    """
+    """Return the D3(BJ) dispersion energy (Hartree); params must include explicit s9 (dftd3 defaults s9=1.0/ATM)."""
     try:
         from dftd3.interface import DispersionModel, RationalDampingParam
     except Exception as exc:
