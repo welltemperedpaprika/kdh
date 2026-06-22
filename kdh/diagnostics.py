@@ -1,9 +1,4 @@
-"""Reference-safety diagnostics for periodic double-hybrid calculations.
-
-Provides gap analysis and fractional-occupation detection utilities used by
-``KRDH.check_reference_safety`` to guard against degenerate references that
-would make PT2 energetically meaningless or numerically catastrophic.
-"""
+"""Gap and fractional-occupation checks that guard KRDH against degenerate SCF references before PT2."""
 from __future__ import annotations
 
 from typing import Any

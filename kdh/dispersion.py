@@ -26,7 +26,7 @@ def _is_periodic(structure: Any) -> bool:
 
 
 def dftd3_correction(structure: Any, functional: Any) -> float:
-    """Return the D3(BJ) dispersion energy (Hartree); params must include explicit s9 (dftd3 defaults s9=1.0/ATM)."""
+    """Return the D3(BJ) dispersion energy in Hartree for a molecule or cell."""
     try:
         from dftd3.interface import DispersionModel, RationalDampingParam
     except Exception as exc:

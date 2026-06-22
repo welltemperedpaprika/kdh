@@ -1,12 +1,4 @@
-"""Assembly of the PT2 contribution to a periodic double-hybrid energy.
-
-Spin-scaled functionals (``c_os != c_ss``) require the opposite-spin and
-same-spin KMP2 components. These are exposed by closed-shell
-``pyscf.pbc.mp.KMP2`` in PySCF runtimes from 2.3.0 onward; when they are
-absent the spin-scaled assembly cannot proceed and a clear error naming the
-requirement is raised rather than silently mis-scaling the correlation
-energy.
-"""
+"""Scale the MP2 correlation components into the double-hybrid PT2 energy."""
 from __future__ import annotations
 
 

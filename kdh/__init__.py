@@ -1,12 +1,7 @@
 """Molecular and k-point periodic double-hybrid DFT for PySCF.
 
-Public API:
-    ``RDFDH``  -- molecular restricted double-hybrid driver
-    ``KRDH`` / ``KDH`` -- closed-shell k-point periodic double-hybrid driver
-    ``DoubleHybridFunctional`` / ``parse_dh_xc`` -- functional registry
-
-Heavy driver classes import PySCF lazily via ``__getattr__`` so that importing
-``kdh`` does not import PySCF until a driver is used.
+Public API: RDFDH (molecular), KRDH / KDH (periodic), DoubleHybridFunctional,
+parse_dh_xc.
 """
 from .xc import DoubleHybridFunctional, parse_dh_xc
 
