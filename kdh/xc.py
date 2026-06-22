@@ -79,6 +79,22 @@ KNOWN_DH_FUNCTIONALS: dict[str, DoubleHybridFunctional] = {
         xc_nscf=None,
         c_pt2=0.27,
     ),
+    "B2PLYPD3BJ": DoubleHybridFunctional(
+        name="B2PLYP-D3BJ",
+        xc_scf="0.53*HF + 0.47*B88, 0.73*LYP",
+        xc_nscf=None,
+        c_pt2=0.27,
+        dispersion={
+            "method": "d3bj",
+            "params": {
+                "s6": 0.64,
+                "s8": 0.9147,
+                "a1": 0.3065,
+                "a2": 5.057,
+                "s9": 0.0,
+            },
+        },
+    ),
     "PBE0DH": DoubleHybridFunctional(
         name="PBE0DH",
         xc_scf="0.50*HF + 0.50*PBE, 0.875*PBE",

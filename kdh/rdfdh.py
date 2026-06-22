@@ -16,6 +16,7 @@ class RDFDH(lib.StreamObject):
         *,
         frozen: int | list[int] | None = None,
         with_t2: bool = False,
+        dispersion_correction=None,
     ) -> None:
         self._check_closed_shell(mol)
         self.mol = mol
@@ -25,6 +26,7 @@ class RDFDH(lib.StreamObject):
         self.xc_dh = parse_dh_xc(xc)
         self.frozen = frozen
         self.with_t2 = with_t2
+        self.dispersion_correction = dispersion_correction
 
         self.mf_s = None
         self.mf_n = None
@@ -35,6 +37,7 @@ class RDFDH(lib.StreamObject):
         self.e_corr_os = None
         self.e_corr_ss = None
         self.e_tot = None
+        self.e_disp = None
         self._keys = set(self.__dict__.keys())
 
     def _check_closed_shell(self, mol: Any) -> None:
@@ -65,6 +68,7 @@ class RDFDH(lib.StreamObject):
         log.info("c_ss = %s", self.xc_dh.c_ss)
         log.info("frozen = %s", self.frozen)
         log.info("with_t2 = %s", self.with_t2)
+        log.info("dispersion = %s", self.xc_dh.dispersion)
         return self
 
     def reset(self, mol=None):
@@ -80,6 +84,7 @@ class RDFDH(lib.StreamObject):
         self.e_corr_os = None
         self.e_corr_ss = None
         self.e_tot = None
+        self.e_disp = None
         return self
 
     def run_scf(self, **kwargs):
@@ -142,6 +147,19 @@ class RDFDH(lib.StreamObject):
             )
         return self.e_pt2
 
+    def energy_dispersion(self) -> float:
+        """Add the optional dftd3-backed D3(BJ) dispersion correction."""
+        from .dispersion import resolve_dispersion_correction
+
+        correction = resolve_dispersion_correction(
+            self.xc_dh, self.dispersion_correction
+        )
+        if correction is None:
+            self.e_disp = 0.0
+            return self.e_disp
+        self.e_disp = float(correction(self.mol, self.xc_dh))
+        return self.e_disp
+
     def nuc_grad_method(self):
         raise NotImplementedError(
             "Gradients are not supported by the molecular RDFDH checkpoint."
@@ -157,5 +175,9 @@ class RDFDH(lib.StreamObject):
                 "Range-separated double hybrids requiring long-range PT2 are not "
                 "supported by the molecular checkpoint wrapper."
             )
-        self.e_tot = self.energy_dfa(**kwargs) + self.energy_pt2()
+        self.e_tot = (
+            self.energy_dfa(**kwargs)
+            + self.energy_pt2()
+            + self.energy_dispersion()
+        )
         return self.e_tot

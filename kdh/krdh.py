@@ -74,6 +74,7 @@ class KRDH(lib.StreamObject):
         allow_small_gap: bool = False,
         allow_fractional_occ: bool = False,
         scf_stabilization: Any | None = None,
+        dispersion_correction=None,
     ) -> None:
         """Initialize KRDH for *cell* with the given double-hybrid functional.
 
@@ -127,6 +128,7 @@ class KRDH(lib.StreamObject):
         self.allow_small_gap = allow_small_gap
         self.allow_fractional_occ = allow_fractional_occ
         self.scf_stabilization = scf_stabilization
+        self.dispersion_correction = dispersion_correction
 
         self.mf_s = None
         self.mf_n = None
@@ -139,6 +141,7 @@ class KRDH(lib.StreamObject):
         self.e_corr_os = None
         self.e_corr_ss = None
         self.e_tot = None
+        self.e_disp = None
         self._keys = set(self.__dict__.keys())
 
     @property
@@ -171,6 +174,7 @@ class KRDH(lib.StreamObject):
         log.info("allow_small_gap = %s", self.allow_small_gap)
         log.info("allow_fractional_occ = %s", self.allow_fractional_occ)
         log.info("scf_stabilization = %s", self.scf_stabilization)
+        log.info("dispersion = %s", self.xc_dh.dispersion)
         return self
 
     def reset(self, cell=None):
@@ -201,6 +205,7 @@ class KRDH(lib.StreamObject):
         self.e_corr_os = None
         self.e_corr_ss = None
         self.e_tot = None
+        self.e_disp = None
         return self
 
     def _new_ks(self, xc: str):
@@ -337,6 +342,19 @@ class KRDH(lib.StreamObject):
         self.e_pt2 = assemble_pt2_energy(self.xc_dh, e_corr, e_corr_os, e_corr_ss)
         return self.e_pt2
 
+    def energy_dispersion(self) -> float:
+        """Add the optional dftd3-backed D3(BJ) dispersion correction."""
+        from .dispersion import resolve_dispersion_correction
+
+        correction = resolve_dispersion_correction(
+            self.xc_dh, self.dispersion_correction
+        )
+        if correction is None:
+            self.e_disp = 0.0
+            return self.e_disp
+        self.e_disp = float(correction(self.cell, self.xc_dh))
+        return self.e_disp
+
     def nuc_grad_method(self):
         raise NotImplementedError(
             "Periodic double-hybrid gradients require KMP2 relaxed-density or "
@@ -352,10 +370,14 @@ class KRDH(lib.StreamObject):
         )
 
     def kernel(self, **kwargs) -> float:
-        """Run SCF, the non-self-consistent DFA, and the scaled PT2 correction."""
+        """Run SCF, the DFA, the scaled PT2 correction, and dispersion."""
         self.check_sanity()
         self.dump_flags()
-        self.e_tot = self.energy_dfa(**kwargs) + self.energy_pt2()
+        self.e_tot = (
+            self.energy_dfa(**kwargs)
+            + self.energy_pt2()
+            + self.energy_dispersion()
+        )
         return self.e_tot
 
 
