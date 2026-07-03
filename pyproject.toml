@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kdh"
-version = "0.1.0"
+version = "0.2.0"
 description = "Molecular and k-point periodic double-hybrid DFT for PySCF"
 readme = "README.md"
 requires-python = ">=3.10"
