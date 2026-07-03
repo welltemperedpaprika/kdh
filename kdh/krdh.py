@@ -4,9 +4,18 @@ from typing import Any
 
 from pyscf import lib
 from pyscf.lib import logger
-from pyscf.pbc import dft, mp
+from pyscf.pbc import dft, mp, scf
 
 from .xc import DoubleHybridFunctional, parse_dh_xc
+
+
+def _is_pure_hf(xc: str) -> bool:
+    """Return True when *xc* is an unmixed Hartree-Fock reference.
+
+    Routed through ``scf.KRHF`` (not ``dft.KRKS(xc="HF")``) so the SCF skips the
+    unused XC grid; the two paths are energy-identical (parity-tested).
+    """
+    return isinstance(xc, str) and xc.strip().upper() == "HF"
 
 
 class KRDH(lib.StreamObject):
@@ -127,8 +136,11 @@ class KRDH(lib.StreamObject):
         return self
 
     def _new_ks(self, xc: str):
-        """Build a KRKS object with the driver's df_backend and exxdiv."""
-        mf = dft.KRKS(self.cell, kpts=self.kpts, xc=xc)
+        """Build a KRKS (or KRHF for pure HF) with the driver's df_backend and exxdiv."""
+        if _is_pure_hf(xc):
+            mf = scf.KRHF(self.cell, kpts=self.kpts)
+        else:
+            mf = dft.KRKS(self.cell, kpts=self.kpts, xc=xc)
         mf.exxdiv = self.exxdiv
         if self.df_backend == "gdf":
             return mf.density_fit()
@@ -186,6 +198,7 @@ class KRDH(lib.StreamObject):
 
         self.mf_n = self._new_ks(self.xc_dh.xc_nscf)
         self.mf_n.grids = self.mf_s.grids
+        self.mf_n.with_df = self.mf_s.with_df
         dm = self.mf_s.make_rdm1()
         self.e_dfa = float(self.mf_n.energy_tot(dm=dm))
         return self.e_dfa

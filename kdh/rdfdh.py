@@ -2,10 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyscf import dft, lib, mp
+from pyscf import dft, lib, mp, scf
 from pyscf.lib import logger
 
 from .xc import DoubleHybridFunctional, parse_dh_xc
+
+
+def _is_pure_hf(xc: str) -> bool:
+    """Return True when *xc* is an unmixed Hartree-Fock reference.
+
+    Routed through ``scf.RHF`` (not ``dft.RKS(xc="HF")``) so the SCF skips the
+    unused XC grid; the two paths are energy-identical (parity-tested).
+    """
+    return isinstance(xc, str) and xc.strip().upper() == "HF"
 
 
 class RDFDH(lib.StreamObject):
@@ -86,8 +95,14 @@ class RDFDH(lib.StreamObject):
         self.e_disp = None
         return self
 
+    def _new_ks(self, xc: str):
+        """Build an RKS (or RHF for pure HF) molecular mean-field object."""
+        if _is_pure_hf(xc):
+            return scf.RHF(self.mol)
+        return dft.RKS(self.mol, xc=xc)
+
     def run_scf(self, **kwargs):
-        self.mf_s = dft.RKS(self.mol, xc=self.xc_dh.xc_scf)
+        self.mf_s = self._new_ks(self.xc_dh.xc_scf)
         self.e_scf = self.mf_s.kernel(**kwargs)
         if not self.mf_s.converged:
             raise RuntimeError("RDFDH SCF did not converge")
@@ -102,7 +117,7 @@ class RDFDH(lib.StreamObject):
             self.e_dfa = float(self.mf_s.e_tot)
             return self.e_dfa
 
-        self.mf_n = dft.RKS(self.mol, xc=self.xc_dh.xc_nscf)
+        self.mf_n = self._new_ks(self.xc_dh.xc_nscf)
         self.mf_n.grids = self.mf_s.grids
         dm = self.mf_s.make_rdm1()
         self.e_dfa = float(self.mf_n.energy_tot(dm=dm))
