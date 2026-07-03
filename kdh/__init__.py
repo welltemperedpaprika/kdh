@@ -11,6 +11,8 @@ __all__ = [
     "KRDH",
     "RDFDH",
     "UDFDH",
+    "numerical_nuc_grad",
+    "optimize",
     "parse_dh_xc",
 ]
 
@@ -28,4 +30,8 @@ def __getattr__(name):
         from .udfdh import UDFDH
 
         return UDFDH
+    if name in {"numerical_nuc_grad", "optimize"}:
+        from .numderiv import numerical_nuc_grad, optimize
+
+        return {"numerical_nuc_grad": numerical_nuc_grad, "optimize": optimize}[name]
     raise AttributeError(f"module 'kdh' has no attribute {name!r}")
