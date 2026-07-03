@@ -218,9 +218,55 @@ class RDFDH(lib.StreamObject):
         return self.e_disp
 
     def nuc_grad_method(self):
-        raise NotImplementedError(
-            "Gradients are not supported by RDFDH."
-        )
+        """Return the analytic nuclear-gradient object for a supported functional.
+
+        Implemented only for the first-target case: closed-shell (RKS),
+        conventional (``xc_nscf is None``), full-range, unscaled MP2
+        (``c_os == c_ss``, e.g. B2PLYP), with no dispersion, frozen core, or
+        density fitting. Every other case is refused with a message naming the
+        missing response terms rather than returning an unvalidated force.
+        """
+        xc = self.xc_dh
+        if xc.xc_nscf is not None:
+            raise NotImplementedError(
+                "Analytic gradients for xDH functionals (xc_nscf set) are not "
+                "implemented: they need the extra non-self-consistent DFA "
+                "orbital-response terms (Gu-Zhu-Xu), which are absent here. "
+                f"Refusing xc_nscf={xc.xc_nscf!r}."
+            )
+        if xc.requires_lr_pt2:
+            raise NotImplementedError(
+                "Analytic gradients for range-separated long-range-PT2 double "
+                "hybrids are not implemented."
+            )
+        if abs(xc.c_os - xc.c_ss) > 1e-12:
+            raise NotImplementedError(
+                "Analytic gradients for spin-component-scaled double hybrids "
+                f"(c_os={xc.c_os} != c_ss={xc.c_ss}) are not implemented: they "
+                "need the OS/SS-resolved MP2 Lagrangian, whereas this "
+                "implementation assembles the unscaled (c_os == c_ss) MP2 "
+                "gradient only."
+            )
+        if xc.dispersion or self.dispersion_correction is not None:
+            raise NotImplementedError(
+                "Analytic gradients with a dispersion correction are not "
+                "implemented: the semi-empirical dispersion-gradient term is not "
+                "assembled here. Use a dispersionless functional."
+            )
+        if self.frozen is not None:
+            raise NotImplementedError(
+                "Analytic gradients with a frozen core are not implemented: the "
+                "frozen-core orbital-relaxation terms are not assembled here."
+            )
+        if self.df:
+            raise NotImplementedError(
+                "Analytic gradients for the density-fitted driver (df=True) are "
+                "not implemented: they need the DF-MP2 relaxed-density path. Use "
+                "the default conventional (df=False) driver."
+            )
+        from .grad.rdfdh import Gradients
+
+        return Gradients(self)
 
     Gradients = nuc_grad_method
 
