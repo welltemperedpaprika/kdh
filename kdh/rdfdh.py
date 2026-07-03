@@ -18,6 +18,15 @@ def _is_pure_hf(xc: str) -> bool:
 
 
 class RDFDH(lib.StreamObject):
+    """Restricted molecular double-hybrid DFT driver (closed-shell only).
+
+    Density fitting is opt-in via ``df``. The default ``df=False`` keeps the
+    conventional RKS SCF + conventional 4-index RMP2 path (no energy changes).
+    ``df=True`` builds the SCF with ``.density_fit()`` and the ``mp.MP2`` factory
+    then routes the PT2 step through DF-MP2, which also exposes the OS/SS
+    components used by spin-scaled functionals.
+    """
+
     def __init__(
         self,
         mol: Any,
@@ -26,6 +35,10 @@ class RDFDH(lib.StreamObject):
         frozen: int | list[int] | None = None,
         with_t2: bool = False,
         dispersion_correction=None,
+        df: bool = False,
+        conv_tol: float | None = None,
+        conv_tol_grad: float | None = None,
+        grids_level: int | None = None,
     ) -> None:
         self._check_closed_shell(mol)
         self.mol = mol
@@ -36,6 +49,10 @@ class RDFDH(lib.StreamObject):
         self.frozen = frozen
         self.with_t2 = with_t2
         self.dispersion_correction = dispersion_correction
+        self.df = df
+        self.conv_tol = conv_tol
+        self.conv_tol_grad = conv_tol_grad
+        self.grids_level = grids_level
 
         self.mf_s = None
         self.mf_n = None
@@ -76,7 +93,9 @@ class RDFDH(lib.StreamObject):
         log.info("c_ss = %s", self.xc_dh.c_ss)
         log.info("frozen = %s", self.frozen)
         log.info("with_t2 = %s", self.with_t2)
+        log.info("df = %s", self.df)
         log.info("dispersion = %s", self.xc_dh.dispersion)
+        log.info("dispersion_correction = %s", self.dispersion_correction)
         return self
 
     def reset(self, mol=None):
@@ -96,13 +115,37 @@ class RDFDH(lib.StreamObject):
         return self
 
     def _new_ks(self, xc: str):
-        """Build an RKS (or RHF for pure HF) molecular mean-field object."""
+        """Build an RKS (or RHF for pure HF) molecular mean-field object.
+
+        When ``self.df`` is set the object is wrapped with ``.density_fit()``;
+        the ``mp.MP2`` factory then routes the PT2 step to DF-MP2.
+        """
         if _is_pure_hf(xc):
-            return scf.RHF(self.mol)
-        return dft.RKS(self.mol, xc=xc)
+            mf = scf.RHF(self.mol)
+        else:
+            mf = dft.RKS(self.mol, xc=xc)
+        if self.df:
+            return mf.density_fit()
+        return mf
+
+    def _apply_scf_options(self, mf):
+        """Apply opt-in SCF-tightness options (conv_tol, conv_tol_grad, grids_level).
+
+        All default to ``None`` and leave PySCF's defaults untouched, so existing
+        energies are unchanged. They let a caller (notably the analytic-gradient
+        validation) converge the SCF and grid tightly enough that a
+        finite-difference reference is trustworthy.
+        """
+        if self.conv_tol is not None:
+            mf.conv_tol = self.conv_tol
+        if self.conv_tol_grad is not None:
+            mf.conv_tol_grad = self.conv_tol_grad
+        if self.grids_level is not None and hasattr(mf, "grids"):
+            mf.grids.level = self.grids_level
+        return mf
 
     def run_scf(self, **kwargs):
-        self.mf_s = self._new_ks(self.xc_dh.xc_scf)
+        self.mf_s = self._apply_scf_options(self._new_ks(self.xc_dh.xc_scf))
         self.e_scf = self.mf_s.kernel(**kwargs)
         if not self.mf_s.converged:
             raise RuntimeError("RDFDH SCF did not converge")
