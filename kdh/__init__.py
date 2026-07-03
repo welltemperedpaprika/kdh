@@ -1,11 +1,18 @@
 """Molecular and k-point periodic double-hybrid DFT for PySCF.
 
-Public API: RDFDH (molecular), KRDH / KDH (periodic), DoubleHybridFunctional,
-parse_dh_xc.
+Public API: RDFDH (molecular closed-shell), UDFDH (molecular open-shell),
+KRDH / KDH (periodic), DoubleHybridFunctional, parse_dh_xc.
 """
 from .xc import DoubleHybridFunctional, parse_dh_xc
 
-__all__ = ["DoubleHybridFunctional", "KDH", "KRDH", "RDFDH", "parse_dh_xc"]
+__all__ = [
+    "DoubleHybridFunctional",
+    "KDH",
+    "KRDH",
+    "RDFDH",
+    "UDFDH",
+    "parse_dh_xc",
+]
 
 
 def __getattr__(name):
@@ -17,4 +24,8 @@ def __getattr__(name):
         from .rdfdh import RDFDH
 
         return RDFDH
+    if name == "UDFDH":
+        from .udfdh import UDFDH
+
+        return UDFDH
     raise AttributeError(f"module 'kdh' has no attribute {name!r}")
