@@ -47,21 +47,110 @@ KNOWN_DH_FUNCTIONALS: dict[str, DoubleHybridFunctional] = {
         xc_nscf=None,
         c_pt2=0.27,
     ),
+    # Grimme, J. Chem. Phys. 124, 034108 (2006); D3(BJ) damping from the dftd3
+    # database via the "b2plyp" method name (Grimme, Ehrlich, Goerigk,
+    # J. Comput. Chem. 32, 1456 (2011)).
     "B2PLYPD3BJ": DoubleHybridFunctional(
-        name="B2PLYP-D3BJ",
+        name="B2PLYP-D3(BJ)",
         xc_scf="0.53*HF + 0.47*B88, 0.73*LYP",
         xc_nscf=None,
         c_pt2=0.27,
-        dispersion={
-            "method": "d3bj",
-            "params": {
-                "s6": 0.64,
-                "s8": 0.9147,
-                "a1": 0.3065,
-                "a2": 5.057,
-                "s9": 0.0,
-            },
-        },
+        dispersion=MappingProxyType({"method": "d3bj", "xc": "b2plyp"}),
+    ),
+    # Karton et al., J. Phys. Chem. A 112, 12868 (2008); D3(BJ) from the dftd3
+    # "b2gpplyp" database row.
+    "B2GPPLYPD3BJ": DoubleHybridFunctional(
+        name="B2GP-PLYP-D3(BJ)",
+        xc_scf="0.65*HF + 0.35*B88, 0.64*LYP",
+        xc_nscf=None,
+        c_pt2=0.36,
+        dispersion=MappingProxyType({"method": "d3bj", "xc": "b2gpplyp"}),
+    ),
+    # Schwabe, Grimme, Phys. Chem. Chem. Phys. 8, 4398 (2006); MPW91 is libxc
+    # GGA_X_MPW91. D3(BJ) from the dftd3 "mpw2plyp" database row.
+    "MPW2PLYPD3BJ": DoubleHybridFunctional(
+        name="mPW2PLYP-D3(BJ)",
+        xc_scf="0.55*HF + 0.45*MPW91, 0.75*LYP",
+        xc_nscf=None,
+        c_pt2=0.25,
+        dispersion=MappingProxyType({"method": "d3bj", "xc": "mpw2plyp"}),
+    ),
+    # Kozuch, Martin, J. Comput. Chem. 34, 2327 (2013); SCS PT2 in c_os/c_ss.
+    # D3(BJ) damping is EXPLICIT (a2=5.4): the dftd3 "dsdblyp" row is the 2010
+    # vintage (wrong pairing) and would mis-damp this 2013 functional. Explicit
+    # params default s9=0.0 (two-body), matching the database convention.
+    "DSDBLYPD3BJ": DoubleHybridFunctional(
+        name="DSD-BLYP-D3(BJ)",
+        xc_scf="0.71*HF + 0.29*B88, 0.54*LYP",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=0.47,
+        c_ss=0.40,
+        dispersion=MappingProxyType(
+            {
+                "method": "d3bj",
+                "params": {"s6": 0.57, "a1": 0.0, "s8": 0.0, "a2": 5.4},
+            }
+        ),
+    ),
+    # Kozuch, Martin, J. Comput. Chem. 34, 2327 (2013); the dftd3 "dsdpbep86"
+    # database row matches the 2013 paper.
+    "DSDPBEP86D3BJ": DoubleHybridFunctional(
+        name="DSD-PBEP86-D3(BJ)",
+        xc_scf="0.69*HF + 0.31*PBE, 0.44*P86",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=0.52,
+        c_ss=0.22,
+        dispersion=MappingProxyType({"method": "d3bj", "xc": "dsdpbep86"}),
+    ),
+    # Santra, Sylvetsky, Martin, J. Phys. Chem. A 123, 5129 (2019), Table 3;
+    # D3(BJ) from the dftd3 "revdsdpbep86" database row.
+    "REVDSDPBEP86D3BJ": DoubleHybridFunctional(
+        name="revDSD-PBEP86-D3(BJ)",
+        xc_scf="0.69*HF + 0.31*PBE, 0.4296*P86",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=0.5785,
+        c_ss=0.0799,
+        dispersion=MappingProxyType({"method": "d3bj", "xc": "revdsdpbep86"}),
+    ),
+    # Santra, Sylvetsky, Martin, J. Phys. Chem. A 123, 5129 (2019), Table 3;
+    # D3(BJ) damping is EXPLICIT (this functional is absent from the dftd3
+    # database). Explicit params default s9=0.0 (two-body).
+    "REVDSDBLYPD3BJ": DoubleHybridFunctional(
+        name="revDSD-BLYP-D3(BJ)",
+        xc_scf="0.71*HF + 0.29*B88, 0.5313*LYP",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=0.5477,
+        c_ss=0.1979,
+        dispersion=MappingProxyType(
+            {
+                "method": "d3bj",
+                "params": {"s6": 0.5451, "a1": 0.0, "s8": 0.0, "a2": 5.2},
+            }
+        ),
+    ),
+    # Grimme, J. Chem. Phys. 118, 9095 (2003): SCS-MP2 on a HF reference,
+    # c_os = 6/5, c_ss = 1/3. No dispersion.
+    "SCSMP2": DoubleHybridFunctional(
+        name="SCS-MP2",
+        xc_scf="HF",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=1.2,
+        c_ss=1.0 / 3.0,
+    ),
+    # Jung, Lochan, Dutoi, Head-Gordon, J. Chem. Phys. 121, 9793 (2004):
+    # SOS-MP2 on a HF reference, c_os = 1.3, c_ss = 0.0. No dispersion.
+    "SOSMP2": DoubleHybridFunctional(
+        name="SOS-MP2",
+        xc_scf="HF",
+        xc_nscf=None,
+        c_pt2=1.0,
+        c_os=1.3,
+        c_ss=0.0,
     ),
     "PBE0DH": DoubleHybridFunctional(
         name="PBE0DH",
