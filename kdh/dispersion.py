@@ -1,71 +1,26 @@
-"""dftd3-backed D3(BJ) dispersion for double-hybrid energies.
+"""Dispersion correction hook for double-hybrid energies (molecular + periodic).
 
-A single backend serves both molecular (``Mole``) and periodic (``Cell``)
-structures. D3(BJ) is an additive correction: the electronic functional is
-unchanged and a classical pairwise dftd3 energy is added to the total energy.
+The correction is a callable ``correction(system, functional, kpts) -> float``
+returning the signed dispersion energy in Hartree, normalized to the simulation
+cell (attractive, so ``<= 0``); the driver adds it as-is. Molecular callers
+pass ``kpts=None`` and ``kpts`` never influences the result.
+
+Resolution: an injected callable always wins; otherwise, if the functional
+carries ``dispersion`` metadata, the built-in D3(BJ) adapter in
+``kdh.dispersion_d3`` is used (functional-matched damping from the ``dftd3``
+library, never defaulting ``s6=1.0``); with neither, ``None`` is returned.
 Requires the optional ``dftd3`` package (``pip install kdh[dispersion]``).
 """
 from __future__ import annotations
 
-from typing import Any, Callable
-
-import numpy as np
-import pyscf.data.elements as elements
+from typing import Callable
 
 
-def _atomic_numbers(structure: Any) -> np.ndarray:
-    """Return true atomic numbers (not pseudized charges) from element symbols."""
-    return np.array(
-        [elements.charge(structure.atom_symbol(i)) for i in range(structure.natm)]
-    )
-
-
-def _is_periodic(structure: Any) -> bool:
-    """Return True for a 3D periodic ``Cell``."""
-    return getattr(structure, "dimension", 0) == 3
-
-
-def dftd3_correction(structure: Any, functional: Any) -> float:
-    """Return the D3(BJ) dispersion energy in Hartree for a molecule or cell."""
-    try:
-        from dftd3.interface import DispersionModel, RationalDampingParam
-    except Exception as exc:
-        raise RuntimeError(
-            "dispersion requires the optional 'dftd3' package: "
-            "pip install kdh[dispersion]"
-        ) from exc
-
-    meta = dict(functional.dispersion)
-    if meta.get("method") != "d3bj":
-        raise NotImplementedError(
-            f"only 'd3bj' dispersion is supported, got {meta.get('method')!r}"
-        )
-    params = meta.get("params")
-    if not params or "s9" not in params:
-        raise ValueError(
-            "dispersion params must be functional-matched and include an "
-            "explicit s9 (no ATM default)"
-        )
-
-    numbers = _atomic_numbers(structure)
-    positions = structure.atom_coords()
-    if _is_periodic(structure):
-        model = DispersionModel(
-            numbers,
-            positions,
-            lattice=structure.lattice_vectors(),
-            periodic=np.array([True, True, True]),
-        )
-    else:
-        model = DispersionModel(numbers, positions)
-    param = RationalDampingParam(**params)
-    return float(model.get_dispersion(param, grad=False)["energy"])
-
-
-def resolve_dispersion_correction(functional: Any, injected) -> Callable | None:
-    """Resolve the dispersion callable: injected wins; else dftd3 if metadata set."""
+def resolve_dispersion_correction(functional, injected) -> Callable | None:
     if injected is not None:
         return injected
     if not functional.dispersion:
         return None
-    return dftd3_correction
+    from .dispersion_d3 import correction
+
+    return correction

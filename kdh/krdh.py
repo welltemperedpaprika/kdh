@@ -226,7 +226,7 @@ class KRDH(lib.StreamObject):
         if correction is None:
             self.e_disp = 0.0
             return self.e_disp
-        self.e_disp = float(correction(self.cell, self.xc_dh))
+        self.e_disp = float(correction(self.cell, self.xc_dh, self.kpts))
         return self.e_disp
 
     def nuc_grad_method(self):
