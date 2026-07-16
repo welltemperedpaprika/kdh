@@ -62,15 +62,10 @@ geometry-optimization demos.
 
 Molecular closed-shell (`RDFDH`), molecular open-shell (`UDFDH`), and k-point
 periodic closed-shell (`KRDH`). Periodic open-shell and periodic analytic
-gradients raise a clear `NotImplementedError` (PySCF has no working periodic
-unrestricted KMP2 / KMP2 relaxed density); use the finite-difference gradient
-for periodic forces. The analytic gradient is closed-shell, conventional,
-unscaled-MP2 only; every other case is refused with a message naming the
-missing response terms.
-
+gradients raise a clear `NotImplementedError`.
 ## Validation
 
-- **Test suite**: 120 tests pass on stock PySCF (`pytest`, ~4 s locally), covering
+- **Test suite**: 120 tests pass on PySCF, covering
   the functional registry against literature coefficients, D3 dispersion
   (molecular and periodic), the molecular drivers, and both gradients.
 - **Analytic gradient**: max component deviation 4.0e-7 Ha/bohr against a
@@ -82,7 +77,7 @@ missing response terms.
 - **Production-scale exercise**: a 12-solid periodic validation campaign
   (thermodynamic-limit-extrapolated lattice constants and bulk moduli via
   Birch-Murnaghan EOS fits, against published reference data) runs through
-  `KRDH` on HPC; the full validation record and bit-reproducible harvest
+  `KRDH`; the full validation record and bit-reproducible harvest
   recipes are available on request.
 
 ## License
