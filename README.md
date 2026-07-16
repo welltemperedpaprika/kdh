@@ -68,6 +68,23 @@ for periodic forces. The analytic gradient is closed-shell, conventional,
 unscaled-MP2 only; every other case is refused with a message naming the
 missing response terms.
 
+## Validation
+
+- **Test suite**: 120 tests pass on stock PySCF (`pytest`, ~4 s locally), covering
+  the functional registry against literature coefficients, D3 dispersion
+  (molecular and periodic), the molecular drivers, and both gradients.
+- **Analytic gradient**: max component deviation 4.0e-7 Ha/bohr against a
+  central-finite-difference oracle, and agreement with `pyscf.grad.mp2` to
+  1e-15 in the HF limit (`c_DFA` -> HF exchange, `c_PT2` = 1).
+- **Cross-platform reproducibility**: an end-to-end periodic `KRDH` probe
+  (B2PLYP-D3BJ) reproduces total energies digit-for-digit across PySCF
+  2.10 / 2.12 on two independent HPC clusters.
+- **Production-scale exercise**: a 12-solid periodic validation campaign
+  (thermodynamic-limit-extrapolated lattice constants and bulk moduli via
+  Birch-Murnaghan EOS fits, against published reference data) runs through
+  `KRDH` on HPC; the full validation record and bit-reproducible harvest
+  recipes are available on request.
+
 ## License
 
 Apache-2.0.
