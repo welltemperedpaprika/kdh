@@ -13,7 +13,7 @@ correction:
 - **`RDFDH`** — molecular closed-shell driver for the same functional family,
   with an opt-in density-fitting path (`df=True`) and an analytic nuclear
   gradient for conventional, unscaled-MP2 functionals (e.g. B2PLYP).
-- **`UDFDH`** — molecular open-shell (unrestricted) driver (any spin).
+- **`UDFDH`** — molecular open-shell (unrestricted) driver.
 
 **Dispersion** is a built-in, additive `dftd3`-backed D3(BJ) / D3(0) correction,
 resolved from functional metadata (no external callable needed); the electronic
