@@ -20,8 +20,8 @@ dftd3 library database; an explicit ``params`` dict overrides it. The explicit
 path defaults ``s9 = 0.0`` (Axilrod-Teller-Muto three-body off) to match the
 database convention, which was fitted two-body-only; pass ``s9 = 1.0`` to opt
 into ATM. An unknown method, or D3(BJ) with neither a resolvable ``xc`` nor
-``params``, raises rather than defaulting ``s6 = 1.0``; ``method="d4"`` is
-refused because ``dftd4`` is not a dependency here.
+``params``, raises rather than defaulting ``s6 = 1.0``. ``method="d4"`` is
+unsupported because ``dftd4`` is not a dependency.
 """
 from __future__ import annotations
 

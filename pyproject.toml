@@ -9,7 +9,23 @@ description = "Molecular and k-point periodic double-hybrid DFT for PySCF"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
+authors = [{name = "Jason (Yu Hsuan) Liang"}]
+keywords = ["computational chemistry", "double-hybrid DFT", "periodic systems", "PySCF"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
 dependencies = ["pyscf>=2.3", "numpy"]
+
+[project.urls]
+Homepage = "https://github.com/welltemperedpaprika/kdh"
+Repository = "https://github.com/welltemperedpaprika/kdh"
+Issues = "https://github.com/welltemperedpaprika/kdh/issues"
 
 [project.optional-dependencies]
 dispersion = ["dftd3"]

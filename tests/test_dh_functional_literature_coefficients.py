@@ -1,10 +1,7 @@
-"""Pin every KNOWN_DH_FUNCTIONALS entry to its literature definition.
+"""Check the functional registry against literature coefficients.
 
-Each entry is pinned, with its citation, to the values verified against the
-primary literature and at least one independent implementation. A wrong
-coefficient in kdh/xc.py would pass a parity check against a manual KRKS+KMP2
-path silently (both sides read the same registry), so this table-driven test is
-the independent side. Any future registry edit must consciously update it.
+The table is independent of the runtime registry used by the PySCF parity
+tests, allowing coefficient errors in ``kdh.xc`` to be detected.
 """
 
 import pytest
@@ -268,8 +265,8 @@ def test_xygjos_is_not_the_old_spin_truncated_xyg3():
 
 # Dispersion metadata pinned per entry. db-lookup entries carry an "xc" method
 # name resolved against the dftd3 database; explicit-params entries carry the
-# full {s6, a1, s8, a2} set from the defining paper and MUST NOT use a name
-# lookup (their db rows are absent or a wrong vintage).
+# full {s6, a1, s8, a2} set from the defining paper rather than a database name
+# whose row is absent or corresponds to a different parameterization.
 DISPERSION_METADATA = {
     "B2PLYPD3BJ": {"method": "d3bj", "xc": "b2plyp"},
     "B2GPPLYPD3BJ": {"method": "d3bj", "xc": "b2gpplyp"},
@@ -367,12 +364,7 @@ def test_explicit_params_entries_do_not_use_a_name_lookup(key):
 
 
 def test_dsd_blyp_vintage_differs_from_the_2010_db_row():
-    """Guard the DSD-BLYP vintage trap.
-
-    The entry pins the 2013 revision a2 = 5.4; the dftd3 db `dsdblyp` row is
-    the 2010-vintage pairing. They must give different dispersion energies, so
-    a stray switch to the db name-lookup would be caught.
-    """
+    """Distinguish the 2013 parameters from the 2010 database row."""
     spec = KNOWN_DH_FUNCTIONALS["DSDBLYPD3BJ"]
     assert dict(spec.dispersion)["params"]["a2"] == 5.4
 

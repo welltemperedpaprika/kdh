@@ -104,7 +104,7 @@ def test_rejects_bad_coords_shape():
         )
 
 
-def test_honest_cost_warning_reports_evaluation_count():
+def test_cost_warning_reports_evaluation_count():
     log = io.StringIO()
     coords = np.zeros((2, 3))
     numerical_nuc_grad(

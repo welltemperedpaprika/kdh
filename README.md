@@ -1,6 +1,11 @@
 # kdh
 
+[![Tests](https://github.com/welltemperedpaprika/kdh/actions/workflows/tests.yml/badge.svg)](https://github.com/welltemperedpaprika/kdh/actions/workflows/tests.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 Molecular and k-point periodic double-hybrid DFT for [PySCF](https://github.com/pyscf/pyscf).
+This is a standalone package built on the PySCF framework, not an upstream
+PySCF module.
 
 `kdh` provides double-hybrid drivers that combine a non-self-consistent (xDH)
 exchange–correlation flow with an MP2 / KMP2 perturbative correlation
@@ -30,8 +35,8 @@ corrected `B2PLYP-D3BJ`, `B2GP-PLYP-D3BJ`, `mPW2PLYP-D3BJ`, `DSD-BLYP-D3BJ`,
 ## Install
 
 ```bash
-pip install -e .              # core
-pip install -e .[dispersion]  # + D3(BJ) dispersion (needs dftd3)
+python -m pip install -e .              # core
+python -m pip install -e ".[dispersion]"  # + D3(BJ) dispersion
 ```
 
 ## Quick start
@@ -58,16 +63,43 @@ print(dh.kernel())   # total double-hybrid energy
 See `examples/` for molecular, periodic, parity, dispersion, open-shell, and
 geometry-optimization demos.
 
+## Verification
+
+```bash
+python -m pip install -e ".[test,dispersion]"
+python -m pytest -q
+```
+
+The suite covers:
+
+- functional and dispersion coefficients against their literature sources;
+- periodic B2PLYP energy against an independently assembled native PySCF
+  reference;
+- analytic molecular gradients against finite differences;
+- molecular and periodic D3 corrections against independent `dftd3` calls;
+- OS/SS spin-scaling and non-self-consistent xDH routing; and
+- error handling for unsupported gradients, response terms, and open-shell
+  periodic cases.
+
+GitHub Actions runs the full suite on Python 3.10 and 3.11. For a quicker
+local pass that skips the two native PySCF calculations, use
+`python -m pytest -q -m "not native"`.
+
 ## Scope
 
 Molecular closed-shell (`RDFDH`), molecular open-shell (`UDFDH`), and k-point
 periodic closed-shell (`KRDH`). Periodic open-shell and periodic analytic
-gradients raise a clear `NotImplementedError`.
+gradients raise a clear `NotImplementedError` (PySCF has no working periodic
+unrestricted KMP2 or KMP2 relaxed density); use the finite-difference gradient
+for periodic forces. The analytic gradient is closed-shell, conventional,
+unscaled-MP2 only. Other cases raise `NotImplementedError` and identify the
+missing response terms.
+
 ## Validation
 
-- **Test suite**: 120 tests pass on PySCF, covering
-  the functional registry against literature coefficients, D3 dispersion
-  (molecular and periodic), the molecular drivers, and both gradients.
+- **Test suite**: 120 tests cover the functional registry against literature
+  coefficients, D3 dispersion (molecular and periodic), the molecular drivers,
+  and both gradients.
 - **Analytic gradient**: max component deviation 4.0e-7 Ha/bohr against a
   central-finite-difference oracle, and agreement with `pyscf.grad.mp2` to
   1e-15 in the HF limit (`c_DFA` -> HF exchange, `c_PT2` = 1).

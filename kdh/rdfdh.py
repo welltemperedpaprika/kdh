@@ -223,8 +223,8 @@ class RDFDH(lib.StreamObject):
         Implemented only for the first-target case: closed-shell (RKS),
         conventional (``xc_nscf is None``), full-range, unscaled MP2
         (``c_os == c_ss``, e.g. B2PLYP), with no dispersion, frozen core, or
-        density fitting. Every other case is refused with a message naming the
-        missing response terms rather than returning an unvalidated force.
+        density fitting. Other cases raise ``NotImplementedError`` and identify
+        the missing response terms.
         """
         xc = self.xc_dh
         if xc.xc_nscf is not None:

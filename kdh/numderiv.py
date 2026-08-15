@@ -1,20 +1,9 @@
-"""Finite-difference nuclear-gradient and geometry-optimization driver.
+"""Finite-difference nuclear gradients and molecular geometry optimization.
 
-There is no analytic gradient for xDH / spin-scaled / periodic double hybrids,
-so this module provides a clearly-labeled *numerical* nuclear gradient for any
-total energy the drivers compute, plus a molecular geometry optimizer that
-delegates to ``pyscf.geomopt``.
-
-Design constraint: density-fitting three-center integrals are geometry
-dependent and must not be reused across displacements, so every displaced
-geometry builds a fresh driver through the caller-supplied factory. The only
-safe cross-geometry reuse is the converged density matrix, passed as the next
-displacement's SCF initial guess (``dm0_reuse``).
-
-A central-difference gradient costs ``2 * 3 * N`` energy evaluations;
-``numerical_nuc_grad`` warns of the honest cost. Only fixed-cell atom-position
-gradients are supported for periodic cells; cell/lattice and stress derivatives
-are refused (they need the periodic MP2-response layer).
+Each displacement builds a fresh driver because density-fitting integrals are
+geometry-dependent. A converged density matrix may be reused as the next SCF
+initial guess. Periodic support is limited to fixed-cell atomic displacements;
+lattice and stress derivatives require periodic MP2 response terms.
 """
 from __future__ import annotations
 
@@ -57,16 +46,10 @@ def numerical_nuc_grad(
 ) -> np.ndarray:
     """Central finite-difference nuclear gradient ``dE/dR`` in Hartree/Bohr.
 
-    Each Cartesian coordinate is displaced by ``+/- step`` (Bohr) and the
-    symmetric difference is formed. ``driver_factory(coords_bohr) -> driver``
-    must build a *fresh* driver (DF integrals are geometry-dependent and must
-    not be reused); the driver exposes ``kernel`` and, for the density-matrix
-    guess, either ``mf_s`` or its own ``make_rdm1``. ``coords`` is ``(natm, 3)``
-    Cartesian in Bohr. With ``dm0_reuse`` the reference density seeds every
-    displaced SCF. ``atmlst`` restricts which atoms are displaced (others stay
-    zero). Works for molecular and periodic (fixed-cell) systems; a periodic
-    reference-safety gap guard trips raise here rather than yielding a garbage
-    force.
+    ``driver_factory(coords_bohr)`` must return a fresh driver exposing
+    ``kernel`` and, for density-matrix reuse, either ``mf_s`` or ``make_rdm1``.
+    ``coords`` has shape ``(natm, 3)`` in Bohr. ``atmlst`` restricts the
+    displaced atoms. Molecular and fixed-cell periodic systems are supported.
     """
     coords = np.asarray(coords, dtype=float)
     if coords.ndim != 2 or coords.shape[1] != 3:
